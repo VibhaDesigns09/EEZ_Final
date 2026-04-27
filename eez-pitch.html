@@ -1,0 +1,2887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eez. — Pre-transaction fraud prevention for financial institutions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Serif+Text:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --purple: #5B3DEA;
+  --purple-deep: #4527D9;
+  --purple-soft: #7E68F0;
+  --lime: #C5F47E;
+  --lime-bright: #B8F25C;
+  --cream: #F5EDE3;
+  --cream-warm: #EFE5D6;
+  --coral: #F4998C;
+  --coral-deep: #E97B6B;
+  --orange: #E96A45;
+  --ink: #1A1A2E;
+  --ink-soft: #4A4A5E;
+  --ink-muted: #8A8A9E;
+  --line: rgba(26,26,46,0.12);
+
+  --serif: 'DM Serif Display', 'DM Serif Text', Georgia, serif;
+  --sans: 'Gotham', 'GothamSSm', 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+
+body {
+  font-family: var(--sans);
+  font-weight: 400;
+  color: var(--ink);
+  background: var(--cream);
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+.serif { font-family: var(--serif); font-weight: 400; letter-spacing: -0.01em; }
+.serif-italic { font-family: var(--serif); font-style: italic; font-weight: 400; }
+.mono-label { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 500; }
+
+/* ============== PERSISTENT UI ============== */
+
+.brand-mark {
+  position: fixed;
+  top: 24px;
+  left: 32px;
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  z-index: 100;
+  mix-blend-mode: difference;
+  color: white;
+  pointer-events: none;
+}
+
+.page-counter {
+  position: fixed;
+  bottom: 24px;
+  right: 32px;
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+  z-index: 100;
+  mix-blend-mode: difference;
+  color: white;
+  font-variant-numeric: tabular-nums;
+}
+
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--purple);
+  z-index: 200;
+  width: 0%;
+  transition: width 0.1s linear;
+}
+
+/* ============== SECTION BASE ============== */
+
+section {
+  position: relative;
+  min-height: 100vh;
+  padding: 100px 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  section { padding: 80px 24px; min-height: auto; }
+  .brand-mark { left: 16px; top: 16px; }
+  .page-counter { right: 16px; bottom: 16px; }
+}
+
+/* Section number (top right of each section content) */
+.section-marker {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.section-marker .label { display: flex; gap: 24px; align-items: center; }
+.section-marker .label .num { font-variant-numeric: tabular-nums; opacity: 0.6; }
+
+/* ============== 01 HERO ============== */
+
+.hero {
+  background: var(--purple);
+  color: white;
+  overflow: hidden;
+  padding: 0;
+  min-height: 100vh;
+  justify-content: flex-end;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  right: -200px;
+  width: 800px;
+  height: 800px;
+  background-image: radial-gradient(circle, var(--lime) 1.5px, transparent 1.5px);
+  background-size: 14px 14px;
+  opacity: 0.55;
+  border-radius: 50%;
+  -webkit-mask-image: radial-gradient(circle, black 30%, transparent 70%);
+  mask-image: radial-gradient(circle, black 30%, transparent 70%);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  top: 100px;
+  right: 250px;
+  width: 500px;
+  height: 500px;
+  background-image: radial-gradient(circle, var(--lime) 1.5px, transparent 1.5px);
+  background-size: 12px 12px;
+  opacity: 0.4;
+  border-radius: 50%;
+  -webkit-mask-image: radial-gradient(circle, black 30%, transparent 70%);
+  mask-image: radial-gradient(circle, black 30%, transparent 70%);
+}
+
+.hero-inner {
+  padding: 80px;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.hero-mono {
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  font-weight: 400;
+  margin-bottom: 32px;
+  opacity: 0.85;
+}
+
+.hero-logo {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: clamp(140px, 28vw, 380px);
+  color: var(--lime);
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+  margin-bottom: 40px;
+}
+
+.hero-tagline {
+  font-family: var(--serif);
+  font-size: clamp(28px, 3.5vw, 48px);
+  line-height: 1.15;
+  max-width: 720px;
+  margin-bottom: 60px;
+}
+
+.hero-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  padding-top: 24px;
+}
+
+.hero-foot .presenters .label {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+.hero-foot .presenters .names {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.hero-foot .scroll-prompt {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.scroll-prompt .arrow {
+  display: inline-block;
+  animation: bounce 2.2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+@media (max-width: 768px) {
+  .hero-inner { padding: 32px 24px; }
+}
+
+/* ============== 02 PROBLEM ============== */
+
+.problem {
+  background: var(--coral);
+  color: var(--ink);
+}
+
+.problem-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.problem-headline {
+  font-family: var(--serif);
+  font-size: clamp(40px, 5vw, 72px);
+  line-height: 1.05;
+  color: var(--purple);
+  letter-spacing: -0.015em;
+}
+
+.problem-headline .accent {
+  color: var(--ink);
+}
+
+.problem-stats {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(26,26,46,0.2);
+  max-width: 460px;
+}
+
+.problem-stats .number {
+  font-family: var(--serif);
+  font-size: 56px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.problem-stats .desc {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 380px;
+}
+
+/* SMS phone mockup */
+.phone-frame {
+  background: #0F1521;
+  border-radius: 36px;
+  padding: 16px 12px;
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.05);
+  max-width: 380px;
+  margin-left: auto;
+  position: relative;
+}
+
+.phone-notch {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 24px;
+  background: #0F1521;
+  border-radius: 14px;
+  z-index: 2;
+}
+
+.phone-screen {
+  background: var(--cream);
+  border-radius: 24px;
+  padding: 56px 16px 24px;
+  position: relative;
+  font-size: 12px;
+  min-height: 540px;
+}
+
+.sms-time {
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--ink-muted);
+  margin: 14px 0 8px;
+  text-transform: uppercase;
+}
+
+.sms-bubble {
+  background: var(--purple);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 18px 18px 4px 18px;
+  margin-left: 30%;
+  font-size: 12px;
+  line-height: 1.4;
+  position: relative;
+}
+
+.sms-bubble .timestamp {
+  font-size: 9px;
+  opacity: 0.7;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.sms-divider {
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--coral-deep);
+  font-size: 11px;
+  margin: 18px 0;
+  line-height: 1.5;
+}
+
+.sms-divider .dots { letter-spacing: 0.5em; opacity: 0.6; }
+
+.sms-reveal {
+  border: 1.5px solid var(--orange);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.45;
+  background: rgba(244,153,140,0.08);
+}
+
+.sms-reveal .from {
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.sms-reveal .phish {
+  color: var(--orange);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 968px) {
+  .problem-grid { grid-template-columns: 1fr; gap: 48px; }
+  .phone-frame { margin: 0 auto; }
+}
+
+/* ============== 03 THE GAP ============== */
+
+.gap-section {
+  background: var(--cream);
+}
+
+.gap-headline {
+  font-family: var(--serif);
+  font-size: clamp(40px, 5.5vw, 80px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  margin-bottom: 80px;
+  max-width: 1100px;
+}
+
+.gap-headline .nobody { color: var(--orange); }
+
+.gap-timeline {
+  position: relative;
+  padding: 40px 0 60px;
+}
+
+.gap-timeline-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--line);
+}
+
+.gap-stages {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  position: relative;
+}
+
+.gap-stage {
+  position: relative;
+  padding: 20px 0;
+}
+
+.gap-stage .dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  margin: 0 auto 16px;
+  position: relative;
+  z-index: 2;
+}
+
+.gap-stage.outside .dot { border-color: var(--orange); background: var(--orange); }
+.gap-stage.inside .dot { border-color: var(--purple); background: var(--purple); }
+
+.gap-stage .stage-label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 8px;
+  color: var(--ink-soft);
+}
+
+.gap-stage.outside .stage-label { color: var(--orange); }
+.gap-stage.inside .stage-label { color: var(--purple); }
+
+.gap-stage .stage-title {
+  font-family: var(--serif);
+  font-size: 22px;
+  text-align: center;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+
+.gap-stage .stage-time {
+  font-size: 10px;
+  text-align: center;
+  color: var(--ink-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.gap-bracket-wrap {
+  margin-top: 12px;
+  position: relative;
+  height: 60px;
+  grid-column: 1 / 3;
+}
+
+.gap-bracket-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.gap-callout {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+.gap-callout .triangle { display: inline-block; margin-right: 8px; }
+
+.gap-bank-note {
+  margin-top: 20px;
+  font-size: 12px;
+  color: var(--ink-muted);
+  text-align: center;
+  grid-column: 3 / 6;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .gap-stages { grid-template-columns: 1fr; gap: 32px; }
+  .gap-timeline-line { display: none; }
+  .gap-bracket-wrap, .gap-bank-note { grid-column: 1; }
+}
+
+/* ============== 04 COST ============== */
+
+.cost-section {
+  background: var(--cream);
+  border-top: 1px solid var(--line);
+}
+
+.cost-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 100px;
+  align-items: center;
+}
+
+.cost-bignum {
+  font-family: var(--serif);
+  font-size: clamp(180px, 22vw, 320px);
+  color: var(--purple);
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  position: relative;
+}
+
+.cost-bignum .currency {
+  font-size: 0.5em;
+  vertical-align: top;
+  margin-right: -0.05em;
+}
+
+.cost-caption {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--orange);
+  font-size: clamp(20px, 2vw, 30px);
+  margin-top: 16px;
+}
+
+.cost-text {
+  max-width: 480px;
+}
+
+.cost-text .lead {
+  font-family: var(--serif);
+  font-size: clamp(28px, 2.6vw, 36px);
+  line-height: 1.2;
+  margin-bottom: 32px;
+  letter-spacing: -0.01em;
+}
+
+.cost-breakdown-bar {
+  display: flex;
+  height: 64px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 40px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(91,61,234,0.1);
+}
+
+.cost-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+  position: relative;
+  color: white;
+}
+
+.cost-segment-1 { background: var(--orange); flex: 1.0; }
+.cost-segment-2 { background: var(--purple); flex: 1.34; }
+.cost-segment-3 { background: var(--purple-soft); flex: 1.26; }
+.cost-segment-4 { background: #9788F2; flex: 0.95; }
+.cost-segment-5 { background: #B8AEF7; flex: 0.74; color: var(--ink); }
+.cost-segment-6 { background: #D5CDFA; flex: 0.46; color: var(--ink); }
+
+.cost-legend {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.cost-legend > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cost-legend .amount { font-size: 11px; color: var(--ink); font-weight: 700; letter-spacing: 0; }
+
+.cost-footnote {
+  margin-top: 32px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 18px;
+  color: var(--purple);
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+
+.cost-meta {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-top: 24px;
+  font-weight: 500;
+}
+
+@media (max-width: 968px) {
+  .cost-grid { grid-template-columns: 1fr; gap: 48px; }
+  .cost-legend { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+}
+
+/* ============== 05 PRODUCT ============== */
+
+.product-section {
+  background: var(--ink);
+  color: white;
+}
+
+.product-section .section-marker { color: rgba(255,255,255,0.7); }
+
+.product-headline {
+  font-family: var(--serif);
+  font-size: clamp(40px, 5.5vw, 80px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  margin-bottom: 80px;
+  max-width: 1100px;
+}
+
+.product-headline .accent { color: var(--lime); }
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 48px;
+  position: relative;
+}
+
+.product-grid::before {
+  content: '';
+  position: absolute;
+  top: 60px;
+  left: calc(33.33% - 8px);
+  right: calc(33.33% - 8px);
+  height: 2px;
+  background: linear-gradient(90deg, var(--purple-soft), var(--lime), var(--orange));
+  opacity: 0.4;
+}
+
+.product-stage {
+  position: relative;
+}
+
+.product-stage .stage-num {
+  font-family: var(--serif);
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 8px;
+}
+
+.product-stage .moment {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 600;
+  display: inline-block;
+  padding-bottom: 4px;
+  margin-bottom: 20px;
+}
+
+.product-stage:nth-child(1) .moment { color: var(--purple-soft); border-bottom: 2px solid var(--purple-soft); }
+.product-stage:nth-child(2) .moment { color: var(--lime); border-bottom: 2px solid var(--lime); }
+.product-stage:nth-child(3) .moment { color: var(--orange); border-bottom: 2px solid var(--orange); }
+
+.product-stage .stage-name {
+  font-family: var(--serif);
+  font-size: 36px;
+  line-height: 1.05;
+  margin-bottom: 24px;
+  letter-spacing: -0.01em;
+}
+
+.product-stage .stage-desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.75);
+  margin-bottom: 32px;
+}
+
+.product-illustration {
+  height: 280px;
+  position: relative;
+  margin-top: auto;
+}
+
+@media (max-width: 968px) {
+  .product-grid { grid-template-columns: 1fr; gap: 64px; }
+  .product-grid::before { display: none; }
+}
+
+/* ============== 06 ENTRY WEDGE ============== */
+
+.wedge-section {
+  background: var(--cream);
+}
+
+.wedge-eyebrow {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--lime-bright);
+  font-size: 32px;
+  margin-bottom: 8px;
+  -webkit-text-stroke: 1px var(--ink);
+  text-stroke: 1px var(--ink);
+}
+
+.wedge-headline {
+  font-family: var(--serif);
+  font-size: clamp(48px, 6vw, 96px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--purple);
+  max-width: 1000px;
+  margin-bottom: 80px;
+}
+
+.wedge-points {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 48px;
+  border-top: 1px solid var(--line);
+  padding-top: 40px;
+}
+
+.wedge-point {
+  position: relative;
+}
+
+.wedge-point .num {
+  font-family: var(--serif);
+  font-size: 48px;
+  color: var(--orange);
+  line-height: 1;
+  margin-bottom: 16px;
+}
+
+.wedge-point .label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--orange);
+  margin-bottom: 12px;
+}
+
+.wedge-point .text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 768px) {
+  .wedge-points { grid-template-columns: 1fr 1fr; gap: 32px; }
+}
+
+/* ============== 07 TAM/SAM/SOM ============== */
+
+.tam-section {
+  background: var(--purple);
+  color: white;
+  overflow: hidden;
+  position: relative;
+}
+
+.tam-section::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -200px;
+  width: 400px;
+  height: 400px;
+  background-image: radial-gradient(circle, var(--lime) 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.2;
+  border-radius: 50%;
+  -webkit-mask-image: radial-gradient(circle, black 30%, transparent 70%);
+  mask-image: radial-gradient(circle, black 30%, transparent 70%);
+}
+
+.tam-section .section-marker { color: rgba(255,255,255,0.7); }
+
+.tam-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.tam-headline-block .eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.tam-headline {
+  font-family: var(--serif);
+  font-size: clamp(40px, 4.8vw, 72px);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  margin-bottom: 32px;
+}
+
+.tam-headline .arrow {
+  color: var(--lime);
+  display: inline-block;
+}
+
+.tam-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 40px;
+}
+
+.tam-flow-item {
+  display: grid;
+  grid-template-columns: 60px 100px 1fr;
+  align-items: baseline;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+
+.tam-flow-item .tier {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--lime);
+  opacity: 0.85;
+}
+
+.tam-flow-item .figure {
+  font-family: var(--serif);
+  font-size: 32px;
+  color: var(--lime);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tam-flow-item .desc {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.tam-circles {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tam-circles svg { width: 100%; height: 100%; }
+
+@media (max-width: 968px) {
+  .tam-grid { grid-template-columns: 1fr; gap: 48px; }
+}
+
+/* ============== 08 REVENUE OPPORTUNITY ============== */
+
+.revenue-section {
+  background: var(--cream);
+}
+
+.revenue-headline {
+  font-family: var(--serif);
+  font-size: clamp(40px, 5.5vw, 80px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+  max-width: 1200px;
+}
+
+.revenue-sub {
+  font-size: 16px;
+  color: var(--ink-soft);
+  max-width: 720px;
+  margin-bottom: 80px;
+  line-height: 1.5;
+}
+
+.revenue-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.iceberg-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+.iceberg-stat .label {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.iceberg-stat.tomorrow .label { color: var(--purple); }
+
+.iceberg-stat .number {
+  font-family: var(--serif);
+  font-size: 88px;
+  line-height: 1;
+  color: var(--purple);
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+
+.iceberg-stat .source {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--orange);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.iceberg-stat .desc {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+.iceberg-vis {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.iceberg-vis svg { width: 100%; height: 100%; }
+
+.revenue-footnote {
+  margin-top: 80px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1.4;
+  max-width: 920px;
+  color: var(--ink-soft);
+}
+
+.revenue-footnote .source-tag {
+  display: block;
+  font-family: var(--sans);
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-top: 12px;
+}
+
+@media (max-width: 968px) {
+  .revenue-grid { grid-template-columns: 1fr; gap: 48px; }
+}
+
+/* ============== 09 ADOPTION ============== */
+
+.adoption-section {
+  background: var(--cream-warm);
+}
+
+.adoption-headline {
+  font-family: var(--serif);
+  font-size: clamp(40px, 5vw, 76px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  max-width: 1200px;
+  margin-bottom: 16px;
+}
+
+.adoption-headline .accent { color: var(--purple); }
+
+.adoption-sub {
+  font-size: 16px;
+  color: var(--ink-soft);
+  margin-bottom: 80px;
+  max-width: 720px;
+}
+
+.adoption-scenarios {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+
+.scenario {
+  padding: 40px 32px;
+  position: relative;
+}
+
+.scenario:not(:last-child) {
+  border-right: 1px solid var(--line);
+}
+
+.scenario.base {
+  background: var(--purple);
+  color: white;
+}
+
+.scenario .scenario-tag {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.scenario.base .scenario-tag { color: var(--lime); }
+.scenario:not(.base) .scenario-tag { color: var(--orange); }
+
+.scenario .pct {
+  font-family: var(--serif);
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 32px;
+}
+
+.scenario.base .pct { color: var(--lime); }
+
+.scenario .metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.scenario.base .metric { border-bottom-color: rgba(255,255,255,0.2); }
+
+.scenario .metric:last-child { border-bottom: none; padding-bottom: 0; }
+
+.scenario .metric .key {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.scenario .metric .val {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+
+.adoption-math {
+  margin-top: 60px;
+  padding-top: 32px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.adoption-math .label {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink);
+  margin-right: 12px;
+}
+
+.adoption-math .term {
+  display: flex;
+  flex-direction: column;
+}
+
+.adoption-math .term .num {
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--purple);
+}
+
+.adoption-math .term .what {
+  font-size: 11px;
+  color: var(--ink-muted);
+  letter-spacing: 0.05em;
+}
+
+.adoption-math .op {
+  font-family: var(--serif);
+  color: var(--ink-muted);
+  font-size: 22px;
+}
+
+.adoption-math .result .num { color: var(--orange); font-weight: 600; }
+
+.adoption-ceiling {
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+
+.adoption-ceiling strong { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 968px) {
+  .adoption-scenarios { grid-template-columns: 1fr; }
+  .scenario:not(:last-child) { border-right: none; border-bottom: 1px solid var(--line); }
+}
+
+/* ============== 10 BUSINESS CASE ============== */
+
+.business-section {
+  background: var(--cream);
+}
+
+.business-headline {
+  font-family: var(--serif);
+  font-size: clamp(48px, 7vw, 112px);
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  margin-bottom: 16px;
+}
+
+.business-headline .first { color: var(--orange); }
+.business-headline .later { color: var(--purple); }
+
+.business-sub {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 22px;
+  color: var(--ink-soft);
+  margin-bottom: 80px;
+}
+
+.business-grid {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+  gap: 0;
+  align-items: stretch;
+  margin-bottom: 60px;
+}
+
+.business-card {
+  padding: 8px 0;
+  position: relative;
+}
+
+.business-card .step-tag {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.business-card.pilot .step-tag { color: var(--orange); }
+.business-card.scale .step-tag { color: var(--ink-muted); }
+
+.business-card .partner-name {
+  font-family: var(--serif);
+  font-size: 96px;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+}
+
+.business-card.pilot .partner-name { color: var(--orange); }
+.business-card.scale .partner-name { color: var(--ink); }
+
+.business-card .partner-meta {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-bottom: 32px;
+  letter-spacing: 0.04em;
+}
+
+.business-card .impact {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 20px 0;
+  margin-bottom: 24px;
+}
+
+.business-card .impact .num {
+  font-family: var(--serif);
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.business-card.pilot .impact .num { color: var(--orange); }
+.business-card.scale .impact .num { color: var(--purple); }
+
+.business-card .impact .label {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+.business-card .exposure {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-bottom: 28px;
+  font-style: italic;
+}
+
+.business-card .why-tag {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.business-card.pilot .why-tag { color: var(--orange); }
+.business-card.scale .why-tag { color: var(--ink-soft); }
+
+.business-card .why-list {
+  list-style: none;
+  padding: 0;
+}
+
+.business-card .why-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.business-card .why-list li:last-child { border-bottom: none; }
+
+.business-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: var(--ink-muted);
+  font-family: var(--serif);
+}
+
+.business-footnote {
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 22px;
+  color: var(--ink-soft);
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+}
+
+.business-footnote .em { color: var(--purple); font-style: normal; font-weight: 500; }
+
+@media (max-width: 968px) {
+  .business-grid { grid-template-columns: 1fr; gap: 48px; }
+  .business-arrow { transform: rotate(90deg); height: 60px; }
+}
+
+/* ============== 11 UNIT ECONOMICS ============== */
+
+.unit-section {
+  background: var(--cream);
+  border-top: 1px solid var(--line);
+}
+
+.unit-headline {
+  font-family: var(--serif);
+  font-size: clamp(48px, 7vw, 112px);
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  margin-bottom: 16px;
+}
+
+.unit-headline .accent { color: var(--purple); }
+.unit-headline .roi { color: var(--orange); }
+
+.unit-sub {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 22px;
+  color: var(--ink-soft);
+  margin-bottom: 80px;
+}
+
+.unit-bar-wrapper {
+  margin-bottom: 60px;
+}
+
+.unit-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 16px;
+}
+
+.unit-bar-header .total {
+  font-family: var(--serif);
+  font-size: 36px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.unit-bar {
+  display: flex;
+  height: 80px;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.unit-bar-left {
+  background: var(--orange);
+  color: white;
+  flex: 24;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 400;
+  position: relative;
+}
+
+.unit-bar-right {
+  background: var(--purple);
+  color: white;
+  flex: 122.54;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  font-family: var(--serif);
+  font-size: 36px;
+  font-weight: 400;
+}
+
+.unit-bar-labels {
+  display: flex;
+  margin-top: 12px;
+}
+
+.unit-bar-labels > div { padding-right: 24px; }
+.unit-bar-labels .left-label { flex: 24; }
+.unit-bar-labels .right-label { flex: 122.54; }
+
+.unit-bar-labels .name {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.unit-bar-labels .pct {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.unit-scale-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  margin-bottom: 40px;
+}
+
+.unit-scale-cell {
+  padding: 32px;
+}
+
+.unit-scale-cell:first-child {
+  border-right: 1px solid var(--line);
+}
+
+.unit-scale-cell .label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.unit-scale-cell.eez .label { color: var(--orange); }
+.unit-scale-cell.bank .label { color: var(--purple); }
+
+.unit-scale-cell .big {
+  font-family: var(--serif);
+  font-size: 80px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+
+.unit-scale-cell.eez .big { color: var(--orange); }
+.unit-scale-cell.bank .big { color: var(--purple); }
+
+.unit-scale-cell .formula {
+  font-size: 13px;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+}
+
+.unit-callout {
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 28px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.unit-callout .num { color: var(--orange); font-style: normal; font-weight: 500; }
+
+@media (max-width: 768px) {
+  .unit-scale-grid { grid-template-columns: 1fr; }
+  .unit-scale-cell:first-child { border-right: none; border-bottom: 1px solid var(--line); }
+  .unit-bar-right { font-size: 24px; }
+  .unit-bar-left { font-size: 18px; }
+}
+
+/* ============== 12 3-YEAR PLAN ============== */
+
+.plan-section {
+  background: var(--ink);
+  color: white;
+}
+
+.plan-section .section-marker { color: rgba(255,255,255,0.7); }
+
+.plan-headline {
+  font-family: var(--serif);
+  font-size: clamp(40px, 5.5vw, 80px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+  max-width: 1100px;
+}
+
+.plan-headline .accent { color: var(--lime); }
+
+.plan-sub {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 22px;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 80px;
+}
+
+.plan-timeline {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  position: relative;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  padding-top: 40px;
+}
+
+.plan-timeline::before {
+  content: '';
+  position: absolute;
+  top: 56px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--orange), var(--lime), var(--purple-soft));
+  opacity: 0.6;
+}
+
+.plan-year {
+  padding-right: 32px;
+  position: relative;
+}
+
+.plan-year .marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-bottom: 28px;
+}
+
+.plan-year:nth-child(1) .marker { background: var(--orange); }
+.plan-year:nth-child(2) .marker { background: var(--lime); }
+.plan-year:nth-child(3) .marker { background: var(--purple-soft); }
+
+.plan-year .year-label {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+
+.plan-year .year-name {
+  font-family: var(--serif);
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+}
+
+.plan-year:nth-child(1) .year-name { color: var(--orange); }
+.plan-year:nth-child(2) .year-name { color: var(--lime); }
+.plan-year:nth-child(3) .year-name { color: var(--purple-soft); }
+
+.plan-year .field {
+  margin-bottom: 20px;
+}
+
+.plan-year .field-label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 700;
+  opacity: 0.5;
+  margin-bottom: 6px;
+}
+
+.plan-year .field-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(255,255,255,0.9);
+}
+
+.plan-year .field-text.milestone {
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.3;
+  font-style: italic;
+}
+
+.plan-foot {
+  margin-top: 60px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 18px;
+  color: rgba(255,255,255,0.85);
+}
+
+.plan-foot .em { color: var(--lime); font-style: normal; font-weight: 500; }
+
+@media (max-width: 968px) {
+  .plan-timeline { grid-template-columns: 1fr; gap: 48px; }
+  .plan-timeline::before { display: none; }
+}
+
+/* ============== 13 TRACTION ============== */
+
+.traction-section {
+  background: var(--cream);
+}
+
+.traction-headline {
+  font-family: var(--serif);
+  font-size: clamp(40px, 5.5vw, 80px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+  max-width: 1100px;
+}
+
+.traction-sub {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 22px;
+  color: var(--ink-soft);
+  margin-bottom: 80px;
+}
+
+.traction-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+
+.traction-cell {
+  padding: 40px 32px 40px 0;
+  position: relative;
+}
+
+.traction-cell:not(:last-child) {
+  border-right: 1px solid var(--line);
+  padding-right: 32px;
+}
+
+.traction-cell:not(:first-child) {
+  padding-left: 32px;
+}
+
+.traction-cell .label {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--orange);
+  margin-bottom: 24px;
+}
+
+.traction-cell .visual {
+  height: 140px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.traction-cell .stat-line {
+  font-family: var(--serif);
+  font-size: 56px;
+  line-height: 1;
+  color: var(--purple);
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.traction-cell .stat-label {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-bottom: 16px;
+}
+
+.traction-cell .pull-quote {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1.35;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+
+.traction-cell .quote-attr {
+  font-size: 11px;
+  color: var(--ink-muted);
+  letter-spacing: 0.05em;
+}
+
+.traction-cell .placeholder-note {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  font-weight: 500;
+  display: inline-block;
+  padding: 4px 8px;
+  background: rgba(244,153,140,0.15);
+  margin-top: 6px;
+}
+
+.traction-foot {
+  margin-top: 40px;
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 22px;
+  font-style: italic;
+  color: var(--ink-soft);
+  letter-spacing: -0.005em;
+}
+
+.traction-foot .em { color: var(--orange); font-style: normal; font-weight: 500; }
+
+@media (max-width: 968px) {
+  .traction-grid { grid-template-columns: 1fr; }
+  .traction-cell:not(:last-child) { border-right: none; border-bottom: 1px solid var(--line); }
+  .traction-cell:not(:first-child) { padding-left: 0; padding-top: 32px; }
+}
+
+/* ============== 14 THE ASK ============== */
+
+.ask-section {
+  background: var(--lime);
+  color: var(--ink);
+  position: relative;
+  overflow: hidden;
+}
+
+.ask-section::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  left: -100px;
+  width: 400px;
+  height: 400px;
+  background-image: radial-gradient(circle, var(--purple) 1.5px, transparent 1.5px);
+  background-size: 14px 14px;
+  opacity: 0.25;
+  border-radius: 50%;
+  -webkit-mask-image: radial-gradient(circle, black 30%, transparent 70%);
+  mask-image: radial-gradient(circle, black 30%, transparent 70%);
+}
+
+.ask-section .section-marker { color: var(--ink); }
+
+.ask-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--purple);
+  margin-bottom: 16px;
+}
+
+.ask-bignum {
+  font-family: var(--serif);
+  font-size: clamp(180px, 26vw, 380px);
+  line-height: 0.85;
+  color: var(--purple);
+  letter-spacing: -0.04em;
+  margin-bottom: 24px;
+}
+
+.ask-meta {
+  display: flex;
+  gap: 60px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--ink);
+  letter-spacing: 0.05em;
+}
+
+.ask-meta .item .key {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 700;
+  opacity: 0.6;
+  margin-bottom: 4px;
+}
+
+.ask-meta .item .val {
+  font-family: var(--serif);
+  font-size: 22px;
+}
+
+.ask-tagline {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 24px;
+  color: var(--ink);
+  max-width: 700px;
+  margin-bottom: 80px;
+  border-left: 2px solid var(--purple);
+  padding-left: 20px;
+}
+
+.ask-funds {
+  margin-bottom: 60px;
+}
+
+.ask-funds .funds-label {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--purple);
+  margin-bottom: 20px;
+}
+
+.ask-funds-bar {
+  display: flex;
+  height: 60px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.ask-funds-bar > div {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  font-family: var(--serif);
+  font-size: 24px;
+  color: white;
+}
+
+.ask-funds-bar .build { background: var(--purple); flex: 80; }
+.ask-funds-bar .ops { background: var(--purple-soft); flex: 90; }
+.ask-funds-bar .legal { background: #B5A8FA; color: var(--ink); flex: 30; }
+
+.ask-funds-legend {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+}
+
+.ask-funds-legend > div {
+  padding-right: 24px;
+}
+
+.ask-funds-legend .pct {
+  font-family: var(--serif);
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.ask-funds-legend .name {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.ask-funds-legend .desc {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.ask-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  border-top: 1px solid var(--ink);
+  padding-top: 32px;
+  margin-bottom: 40px;
+}
+
+.ask-bottom-cell .label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--purple);
+  margin-bottom: 8px;
+}
+
+.ask-bottom-cell .val {
+  font-family: var(--serif);
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.ask-final {
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 22px;
+  font-style: italic;
+  border-top: 1px solid var(--ink);
+  padding-top: 32px;
+}
+
+.ask-final .em { color: var(--purple); font-weight: 500; font-style: normal; }
+
+@media (max-width: 768px) {
+  .ask-meta { gap: 32px; }
+  .ask-funds-legend { grid-template-columns: 1fr; gap: 20px; }
+  .ask-bottom { grid-template-columns: 1fr; }
+}
+
+/* ============== 15 CLOSING ============== */
+
+.closing-section {
+  background: var(--purple);
+  color: white;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.closing-section::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 1000px;
+  height: 1000px;
+  background-image: radial-gradient(circle, var(--lime) 1.5px, transparent 1.5px);
+  background-size: 16px 16px;
+  opacity: 0.18;
+  border-radius: 50%;
+  -webkit-mask-image: radial-gradient(circle, black 20%, transparent 70%);
+  mask-image: radial-gradient(circle, black 20%, transparent 70%);
+}
+
+.closing-content {
+  position: relative;
+  z-index: 2;
+  max-width: 1100px;
+}
+
+.closing-statement {
+  font-family: var(--serif);
+  font-size: clamp(40px, 6vw, 90px);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin-bottom: 60px;
+}
+
+.closing-statement .accent { color: var(--lime); }
+
+.closing-divider {
+  width: 60px;
+  height: 1px;
+  background: rgba(255,255,255,0.3);
+  margin: 60px auto;
+}
+
+.closing-logo {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 120px;
+  color: var(--lime);
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+  margin-bottom: 24px;
+}
+
+.closing-byline {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+/* ============== ANIMATIONS ============== */
+
+.reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.9s cubic-bezier(0.2,0.8,0.2,1), transform 0.9s cubic-bezier(0.2,0.8,0.2,1); }
+.reveal.in { opacity: 1; transform: translateY(0); }
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+.reveal-delay-5 { transition-delay: 0.5s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; }
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+
+<div class="brand-mark">eez.</div>
+<div class="page-counter" id="pageCounter">01 / 14</div>
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- ===================================================== -->
+<!-- 01 HERO -->
+<!-- ===================================================== -->
+<section class="hero" data-page="01">
+  <div class="hero-inner">
+    <div class="hero-mono reveal">EE (ee) — Z (zzz)</div>
+    <div class="hero-logo reveal reveal-delay-1">eez</div>
+    <div class="hero-tagline reveal reveal-delay-2">Pre-transaction fraud prevention<br>for financial institutions.</div>
+    <div class="hero-foot reveal reveal-delay-3">
+      <div class="presenters">
+        <div class="label">Presented by</div>
+        <div class="names">Kareena, Vibha</div>
+      </div>
+      <div class="scroll-prompt">
+        <span>scroll</span>
+        <span class="arrow">↓</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 02 PROBLEM -->
+<!-- ===================================================== -->
+<section class="problem" data-page="02">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">02</span>
+      <span>The Problem</span>
+    </div>
+  </div>
+  <div class="problem-grid">
+    <div>
+      <h2 class="problem-headline reveal">
+        The fraud lands at <span class="accent">9:02&thinsp;AM</span>.<br>
+        The user finds out <span class="accent">24 hours</span> later.
+      </h2>
+      <div class="problem-stats reveal reveal-delay-2">
+        <div class="number">3.2 million</div>
+        <div class="desc">Americans every year. And in every case, the customer holds one institution responsible: their bank.</div>
+      </div>
+    </div>
+    <div class="reveal reveal-delay-1">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="sms-time">Tuesday · 9:21 AM</div>
+          <div class="sms-bubble">
+            All 15 codes sent. Let me know if you need anything else.
+            <div class="timestamp">9:21 AM</div>
+          </div>
+          <div class="sms-time">Tuesday · 2:47 PM</div>
+          <div class="sms-bubble">
+            Hi Karan, just checking in — please confirm receipt.
+            <div class="timestamp">2:47 PM</div>
+          </div>
+          <div class="sms-time">Tuesday · 6:12 PM</div>
+          <div class="sms-bubble">
+            Hope the call went well. Reimbursement details?
+            <div class="timestamp">6:12 PM</div>
+          </div>
+          <div class="sms-divider">
+            <div class="dots">• • •</div>
+            <div>No reply.<br>Tuesday ends. Wednesday begins.</div>
+            <div class="dots">• • •</div>
+          </div>
+          <div class="sms-time">Wednesday · 9:12 AM</div>
+          <div class="sms-reveal">
+            <div class="from">HR Priya Nair</div>
+            Karan just forwarded me your messages. He never sent you that text. It looks like a <span class="phish">PHISHING ATTEMPT</span>. I'm so sorry. Are you okay?
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 03 THE GAP -->
+<!-- ===================================================== -->
+<section class="gap-section" data-page="03">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">03</span>
+      <span>The Gap</span>
+    </div>
+  </div>
+  <h2 class="gap-headline reveal">
+    Banks are built for <em class="serif-italic">after</em>.
+    <br><span class="nobody">Nobody is built for <em class="serif-italic">before</em>.</span>
+  </h2>
+
+  <div class="gap-timeline reveal reveal-delay-1">
+    <div class="gap-timeline-line"></div>
+    <div class="gap-stages">
+      <div class="gap-stage outside">
+        <div class="dot"></div>
+        <div class="stage-label">Outside Bank</div>
+        <div class="stage-title">User receives fraud</div>
+        <div class="stage-time">T = 0</div>
+      </div>
+      <div class="gap-stage outside">
+        <div class="dot"></div>
+        <div class="stage-label">Outside Bank</div>
+        <div class="stage-title">User acts on it</div>
+        <div class="stage-time">Minutes later</div>
+      </div>
+      <div class="gap-stage inside">
+        <div class="dot"></div>
+        <div class="stage-label">Bank Sees</div>
+        <div class="stage-title">Transaction</div>
+        <div class="stage-time">Hours later</div>
+      </div>
+      <div class="gap-stage inside">
+        <div class="dot"></div>
+        <div class="stage-label">Bank Sees</div>
+        <div class="stage-title">Detection</div>
+        <div class="stage-time">Days later</div>
+      </div>
+      <div class="gap-stage inside">
+        <div class="dot"></div>
+        <div class="stage-label">Bank Sees</div>
+        <div class="stage-title">Dispute & resolve</div>
+        <div class="stage-time">Weeks later</div>
+      </div>
+    </div>
+
+    <!-- Bracket -->
+    <svg viewBox="0 0 100 30" preserveAspectRatio="none" style="width: 40%; height: 50px; margin-top: 20px; display: block;">
+      <path d="M 2 4 Q 2 24 50 24 Q 98 24 98 4" fill="none" stroke="var(--orange)" stroke-width="0.6"/>
+      <path d="M 50 24 L 50 28" stroke="var(--orange)" stroke-width="0.6"/>
+    </svg>
+    <div class="gap-callout reveal reveal-delay-2"><span class="triangle">▲</span>Fraud happens here — no intervention exists</div>
+    <div class="gap-bank-note">↑ Bank's existing fraud stack only activates from "Transaction" onward</div>
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 04 COST OF CUSTOMER -->
+<!-- ===================================================== -->
+<section class="cost-section" data-page="04">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">04</span>
+      <span>Cost of Customer</span>
+    </div>
+  </div>
+  <div class="cost-grid">
+    <div class="reveal">
+      <div class="cost-bignum"><span class="currency">$</span>5.75</div>
+      <div class="cost-caption">for every dollar lost.</div>
+    </div>
+    <div class="cost-text reveal reveal-delay-1">
+      <div class="lead">This is the cost paid by US banks to retain consumer trust through fraud protection.</div>
+      <div class="cost-meta">Per $1 of fraud absorbed by the bank</div>
+      <div class="cost-breakdown-bar">
+        <div class="cost-segment cost-segment-1">$1.00</div>
+        <div class="cost-segment cost-segment-2">$1.34</div>
+        <div class="cost-segment cost-segment-3">$1.26</div>
+        <div class="cost-segment cost-segment-4">$0.95</div>
+        <div class="cost-segment cost-segment-5">$0.74</div>
+        <div class="cost-segment cost-segment-6">$.46</div>
+      </div>
+      <div class="cost-legend">
+        <div><span class="amount">$1.00</span><span>Direct loss</span></div>
+        <div><span class="amount">$1.34</span><span>Reimburse</span></div>
+        <div><span class="amount">$1.26</span><span>Dispute ops</span></div>
+        <div><span class="amount">$0.95</span><span>Compliance</span></div>
+        <div><span class="amount">$0.74</span><span>Support</span></div>
+        <div><span class="amount">$0.46</span><span>Remed</span></div>
+      </div>
+      <div class="cost-footnote">The visible loss is just <strong>17%</strong> of the real cost.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 05 PRODUCT -->
+<!-- ===================================================== -->
+<section class="product-section" data-page="05">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">05</span>
+      <span>The Product</span>
+    </div>
+  </div>
+  <h2 class="product-headline reveal">
+    Three interventions.<br>
+    <span class="accent">All in the window banks cannot reach.</span>
+  </h2>
+  <div class="product-grid">
+    <div class="product-stage reveal reveal-delay-1">
+      <div class="moment">Before</div>
+      <div class="stage-name">Behavioral profiling</div>
+      <div class="stage-desc">A short diagnostic maps each user's own digital risk pattern — which platforms they over-trust, where they tend to share, which scam archetypes match their behavior. People defend better against threats they recognize as theirs.</div>
+      <svg class="product-illustration" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+        <!-- Radar chart illustration -->
+        <g transform="translate(140,140)">
+          <polygon points="0,-100 87,-50 87,50 0,100 -87,50 -87,-50" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+          <polygon points="0,-70 60,-35 60,35 0,70 -60,35 -60,-35" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+          <polygon points="0,-40 35,-20 35,20 0,40 -35,20 -35,-20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+          <line x1="0" y1="-100" x2="0" y2="100" stroke="rgba(255,255,255,0.08)"/>
+          <line x1="-87" y1="-50" x2="87" y2="50" stroke="rgba(255,255,255,0.08)"/>
+          <line x1="-87" y1="50" x2="87" y2="-50" stroke="rgba(255,255,255,0.08)"/>
+          <polygon points="0,-78 65,-22 75,42 0,55 -45,28 -68,-30" fill="rgba(126,104,240,0.4)" stroke="#7E68F0" stroke-width="1.5"/>
+          <circle cx="0" cy="-78" r="4" fill="#7E68F0"/>
+          <circle cx="65" cy="-22" r="4" fill="#7E68F0"/>
+          <circle cx="75" cy="42" r="4" fill="#7E68F0"/>
+          <circle cx="0" cy="55" r="4" fill="#7E68F0"/>
+          <circle cx="-45" cy="28" r="4" fill="#7E68F0"/>
+          <circle cx="-68" cy="-30" r="4" fill="#7E68F0"/>
+          <text x="0" y="-115" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="8" font-family="Manrope" letter-spacing="2">IMPULSE</text>
+          <text x="100" y="-50" fill="rgba(255,255,255,0.4)" font-size="8" font-family="Manrope" letter-spacing="2">HABITS</text>
+          <text x="100" y="60" fill="rgba(255,255,255,0.4)" font-size="8" font-family="Manrope" letter-spacing="2">SOCIAL</text>
+          <text x="0" y="125" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="8" font-family="Manrope" letter-spacing="2">VERIFY</text>
+          <text x="-100" y="60" text-anchor="end" fill="rgba(255,255,255,0.4)" font-size="8" font-family="Manrope" letter-spacing="2">RESPONSE</text>
+          <text x="-100" y="-50" text-anchor="end" fill="rgba(255,255,255,0.4)" font-size="8" font-family="Manrope" letter-spacing="2">DEVICE</text>
+        </g>
+      </svg>
+    </div>
+    <div class="product-stage reveal reveal-delay-2">
+      <div class="moment">During</div>
+      <div class="stage-name">AI fraud detector</div>
+      <div class="stage-desc">The user pastes any suspicious message — text, email, DM, voice transcript — and gets an instant read: safe, suspicious, scam. Trained on real fraud patterns. Fraud runs on speed; this is the pause that breaks it.</div>
+      <svg class="product-illustration" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+        <!-- Stylized chat / scan -->
+        <rect x="40" y="60" width="200" height="40" rx="8" fill="rgba(255,255,255,0.06)"/>
+        <rect x="40" y="60" width="200" height="40" rx="8" fill="none" stroke="rgba(255,255,255,0.1)"/>
+        <text x="56" y="84" fill="rgba(255,255,255,0.6)" font-size="11" font-family="Manrope">"verify your account immediately…"</text>
+
+        <!-- scan line -->
+        <line x1="40" y1="120" x2="240" y2="120" stroke="#C5F47E" stroke-width="2" stroke-dasharray="4 4">
+          <animate attributeName="y1" values="120;180;120" dur="2.5s" repeatCount="indefinite"/>
+          <animate attributeName="y2" values="120;180;120" dur="2.5s" repeatCount="indefinite"/>
+        </line>
+
+        <!-- Verdict -->
+        <rect x="40" y="160" width="200" height="80" rx="8" fill="none" stroke="#E96A45" stroke-width="2"/>
+        <text x="140" y="195" text-anchor="middle" fill="#E96A45" font-size="22" font-family="DM Serif Display">SCAM</text>
+        <text x="140" y="218" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9" font-family="Manrope" letter-spacing="2">98% CONFIDENCE · DON'T REPLY</text>
+      </svg>
+    </div>
+    <div class="product-stage reveal reveal-delay-3">
+      <div class="moment">After</div>
+      <div class="stage-name">SOS mode</div>
+      <div class="stage-desc">The moment someone realizes they've been hit, panic takes over. SOS walks them through the next 30 minutes — what to freeze, who to call, what to document — and pings their bank with a fraud-event flag.</div>
+      <svg class="product-illustration" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+        <!-- Step list -->
+        <g font-family="Manrope" font-size="11" fill="rgba(255,255,255,0.85)">
+          <circle cx="40" cy="60" r="14" fill="none" stroke="#E96A45" stroke-width="1.5"/>
+          <text x="40" y="64" text-anchor="middle" fill="#E96A45" font-size="11" font-weight="600">1</text>
+          <text x="68" y="64" font-weight="600">Secure your accounts</text>
+          <line x1="40" y1="74" x2="40" y2="100" stroke="rgba(233,106,69,0.4)" stroke-dasharray="2 3"/>
+
+          <circle cx="40" cy="114" r="14" fill="none" stroke="#E96A45" stroke-width="1.5"/>
+          <text x="40" y="118" text-anchor="middle" fill="#E96A45" font-size="11" font-weight="600">2</text>
+          <text x="68" y="118" font-weight="600">Check your credit</text>
+          <line x1="40" y1="128" x2="40" y2="154" stroke="rgba(233,106,69,0.4)" stroke-dasharray="2 3"/>
+
+          <circle cx="40" cy="168" r="14" fill="none" stroke="#E96A45" stroke-width="1.5"/>
+          <text x="40" y="172" text-anchor="middle" fill="#E96A45" font-size="11" font-weight="600">3</text>
+          <text x="68" y="172" font-weight="600">Freeze your credit</text>
+          <line x1="40" y1="182" x2="40" y2="208" stroke="rgba(233,106,69,0.4)" stroke-dasharray="2 3"/>
+
+          <circle cx="40" cy="222" r="14" fill="#E96A45"/>
+          <text x="40" y="226" text-anchor="middle" fill="white" font-size="11" font-weight="600">4</text>
+          <text x="68" y="222" font-weight="600">Notify your bank</text>
+          <text x="68" y="238" fill="rgba(255,255,255,0.4)" font-size="9">Auto-flagged via partnership</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 06 ENTRY WEDGE -->
+<!-- ===================================================== -->
+<section class="wedge-section" data-page="06">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">06</span>
+      <span>Entry Wedge</span>
+    </div>
+  </div>
+  <div class="wedge-eyebrow reveal">Starting with 18–35 y/o</div>
+  <h2 class="wedge-headline reveal reveal-delay-1">Where the exposure is highest<br>and the loyalty is still up for grabs.</h2>
+  <div class="wedge-points">
+    <div class="wedge-point reveal reveal-delay-1">
+      <div class="num">01</div>
+      <div class="label">Who</div>
+      <div class="text">Highly digital, mobile-first banking users with high exposure to app-based scams.</div>
+    </div>
+    <div class="wedge-point reveal reveal-delay-2">
+      <div class="num">02</div>
+      <div class="label">Why now</div>
+      <div class="text">Easy to onboard, test, and observe behavior change quickly.</div>
+    </div>
+    <div class="wedge-point reveal reveal-delay-3">
+      <div class="num">03</div>
+      <div class="label">Viability</div>
+      <div class="text">Reachable through universities, corporates, alumni networks, and community events.</div>
+    </div>
+    <div class="wedge-point reveal reveal-delay-4">
+      <div class="num">04</div>
+      <div class="label">Reason</div>
+      <div class="text">A strong validation point for product-market fit before expanding to banks and fintechs.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 07 TAM SAM SOM -->
+<!-- ===================================================== -->
+<section class="tam-section" data-page="07">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">07</span>
+      <span>User Acquisition Opportunity</span>
+    </div>
+  </div>
+  <div class="tam-grid">
+    <div>
+      <div class="tam-headline-block">
+        <div class="eyebrow reveal">Market funnel</div>
+        <h2 class="tam-headline reveal reveal-delay-1">US 18–59 population <span class="arrow">→</span> banked <span class="arrow">→</span> 18–35 wedge.</h2>
+      </div>
+      <div class="tam-flow reveal reveal-delay-2">
+        <div class="tam-flow-item">
+          <div class="tier">TAM</div>
+          <div class="figure">190M</div>
+          <div class="desc">US population, 18–59</div>
+        </div>
+        <div class="tam-flow-item">
+          <div class="tier">SAM</div>
+          <div class="figure">157M</div>
+          <div class="desc">Banked / fintech-active</div>
+        </div>
+        <div class="tam-flow-item">
+          <div class="tier">SOM</div>
+          <div class="figure">70M</div>
+          <div class="desc">Banked, 18–35 wedge</div>
+        </div>
+      </div>
+    </div>
+    <div class="tam-circles reveal reveal-delay-2">
+      <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+        <!-- TAM -->
+        <circle cx="250" cy="250" r="240" fill="rgba(197,244,126,0.10)" stroke="rgba(197,244,126,0.30)" stroke-width="1"/>
+        <text x="475" y="80" text-anchor="end" fill="#C5F47E" font-family="DM Serif Display" font-size="56">190M</text>
+        <text x="475" y="105" text-anchor="end" fill="rgba(255,255,255,0.7)" font-family="Manrope" font-size="11" letter-spacing="2">US POPULATION, 18–59</text>
+
+        <!-- SAM -->
+        <circle cx="280" cy="270" r="170" fill="rgba(197,244,126,0.16)" stroke="rgba(197,244,126,0.40)" stroke-width="1"/>
+        <text x="455" y="200" text-anchor="end" fill="#C5F47E" font-family="DM Serif Display" font-size="44">157M</text>
+        <text x="455" y="222" text-anchor="end" fill="rgba(255,255,255,0.7)" font-family="Manrope" font-size="10" letter-spacing="2">BANKED / FINTECH-ACTIVE</text>
+
+        <!-- SOM -->
+        <circle cx="280" cy="290" r="100" fill="rgba(197,244,126,0.30)" stroke="rgba(197,244,126,0.60)" stroke-width="1.5"/>
+        <text x="280" y="295" text-anchor="middle" fill="#C5F47E" font-family="DM Serif Display" font-size="44">70M</text>
+        <text x="280" y="320" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-family="Manrope" font-size="9" letter-spacing="2">BANKED, 18–35</text>
+
+        <!-- Tier labels -->
+        <text x="20" y="80" fill="rgba(255,255,255,0.5)" font-family="Manrope" font-size="10" letter-spacing="3">TAM</text>
+        <text x="20" y="200" fill="rgba(255,255,255,0.5)" font-family="Manrope" font-size="10" letter-spacing="3">SAM</text>
+        <text x="20" y="320" fill="rgba(255,255,255,0.5)" font-family="Manrope" font-size="10" letter-spacing="3">SOM</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 08 REVENUE OPPORTUNITY -->
+<!-- ===================================================== -->
+<section class="revenue-section" data-page="08">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">08</span>
+      <span>Revenue Opportunity</span>
+    </div>
+  </div>
+  <h2 class="revenue-headline reveal">Fraud is growing faster<br>than banks can defend.</h2>
+  <div class="revenue-sub reveal reveal-delay-1">AI accelerates the attack. Banks move at compliance speed. The window between is the market.</div>
+
+  <div class="revenue-grid">
+    <div class="iceberg-stats reveal reveal-delay-1">
+      <div class="iceberg-stat tomorrow">
+        <div class="label">Tomorrow</div>
+        <div class="number">+2,137%</div>
+        <div class="source">Signicat</div>
+        <div class="desc">growth in AI-driven fraud attempts over three years.</div>
+      </div>
+    </div>
+
+    <div class="iceberg-vis reveal reveal-delay-2">
+      <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+        <!-- Waterline -->
+        <line x1="40" y1="140" x2="460" y2="140" stroke="#5B3DEA" stroke-width="0.8" stroke-dasharray="4 4" opacity="0.5"/>
+        <text x="40" y="132" fill="#5B3DEA" font-family="Manrope" font-size="9" letter-spacing="2" font-weight="600">WHAT WE SEE</text>
+        <text x="460" y="156" fill="#5B3DEA" font-family="Manrope" font-size="9" letter-spacing="2" font-weight="600" text-anchor="end">WHAT'S REALLY THERE</text>
+
+        <!-- Tip of iceberg (above water) -->
+        <polygon points="250,40 220,140 280,140" fill="#E96A45"/>
+        <text x="320" y="80" fill="#1A1A2E" font-family="DM Serif Display" font-size="36">$16.6B</text>
+        <text x="320" y="100" fill="#E96A45" font-family="Manrope" font-size="9" letter-spacing="2" font-weight="700">REPORTED · FBI IC3 2024</text>
+        <text x="320" y="115" fill="#8A8A9E" font-family="Manrope" font-size="10">+33% YoY</text>
+
+        <!-- Body of iceberg (below water) -->
+        <polygon points="220,140 280,140 380,440 120,440" fill="#5B3DEA"/>
+
+        <!-- 119B label inside body -->
+        <text x="250" y="280" text-anchor="middle" fill="white" font-family="DM Serif Display" font-size="64">$119B</text>
+        <text x="250" y="305" text-anchor="middle" fill="rgba(197,244,126,0.9)" font-family="Manrope" font-size="9" letter-spacing="2" font-weight="700">ACTUAL · CFA 2026</text>
+        <text x="250" y="325" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-family="Manrope" font-size="10">~7× the reported number</text>
+
+        <!-- Subtle waves on the waterline -->
+        <path d="M 40 140 Q 80 138, 120 140 T 200 140 T 280 140 T 360 140 T 460 140" fill="none" stroke="#5B3DEA" stroke-width="0.5" opacity="0.3"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="revenue-footnote reveal">
+    Digital ID stops 20–29% of attacks. EEZ closes the rest by operating <em>outside</em> the bank stack — the behavioral layer no detection model reaches.
+    <span class="source-tag">Regula / Forrester Consulting, 2024</span>
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 09 ADOPTION -->
+<!-- ===================================================== -->
+<section class="adoption-section" data-page="09">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">09</span>
+      <span>Adoption & Opportunity</span>
+    </div>
+  </div>
+  <h2 class="adoption-headline reveal">At <span class="accent">10% adoption</span> of the 18–35 wedge,<br>EEZ delivers $1B in annual value to US banks.</h2>
+  <div class="adoption-sub reveal reveal-delay-1">Three scenarios. Same model. The base case alone clears a billion.</div>
+
+  <div class="adoption-scenarios reveal reveal-delay-1">
+    <div class="scenario">
+      <div class="scenario-tag">Conservative</div>
+      <div class="pct">5%</div>
+      <div class="metric">
+        <div class="key">Customers</div>
+        <div class="val">3.5M</div>
+      </div>
+      <div class="metric">
+        <div class="key">Bank value / yr</div>
+        <div class="val">$513M</div>
+      </div>
+    </div>
+    <div class="scenario base">
+      <div class="scenario-tag">Base case</div>
+      <div class="pct">10%</div>
+      <div class="metric">
+        <div class="key">Customers</div>
+        <div class="val">7M</div>
+      </div>
+      <div class="metric">
+        <div class="key">Bank value / yr</div>
+        <div class="val">$1.0B</div>
+      </div>
+    </div>
+    <div class="scenario">
+      <div class="scenario-tag">Strong</div>
+      <div class="pct">20%</div>
+      <div class="metric">
+        <div class="key">Customers</div>
+        <div class="val">14M</div>
+      </div>
+      <div class="metric">
+        <div class="key">Bank value / yr</div>
+        <div class="val">$2.05B</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="adoption-math reveal reveal-delay-2">
+    <span class="label">How the base case gets to $1B</span>
+    <div class="term"><span class="num">$25.49</span><span class="what">loss avoided / customer</span></div>
+    <span class="op">×</span>
+    <div class="term"><span class="num">$5.75</span><span class="what">multiplier</span></div>
+    <span class="op">=</span>
+    <div class="term"><span class="num">$146.54</span><span class="what">bank value / customer</span></div>
+    <span class="op">×</span>
+    <div class="term"><span class="num">7M</span><span class="what">customers</span></div>
+    <span class="op">=</span>
+    <div class="term result"><span class="num">$1.0B</span><span class="what">total value</span></div>
+  </div>
+  <div class="adoption-ceiling reveal reveal-delay-3">
+    <strong>Ceiling</strong>  ·  Full 18–35 capture: $10.3B  ·  Full 18–59 TAM: $54.7B
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 10 BUSINESS CASE -->
+<!-- ===================================================== -->
+<section class="business-section" data-page="10">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">10</span>
+      <span>Business Case</span>
+    </div>
+  </div>
+  <h2 class="business-headline reveal">
+    <span class="first">Chime first.</span><br>
+    <span class="later">Chase later.</span>
+  </h2>
+  <div class="business-sub reveal reveal-delay-1">Same model, sequenced for impact.</div>
+
+  <div class="business-grid">
+    <div class="business-card pilot reveal reveal-delay-1">
+      <div class="step-tag">Step 01 · Pilot</div>
+      <div class="partner-name">Chime</div>
+      <div class="partner-meta">8.6M members</div>
+      <div class="impact">
+        <div class="num">$200M</div>
+        <div class="label">EEZ P&L impact at base case (10%)</div>
+      </div>
+      <div class="exposure">$1.7B annual fraud exposure</div>
+      <div class="why-tag">Why first</div>
+      <ul class="why-list">
+        <li>Single-stack neobank, no legacy fraud platform</li>
+        <li>S-1 names fraud as a top-3 risk</li>
+        <li>Thin margins make every chargeback material</li>
+      </ul>
+    </div>
+
+    <div class="business-arrow reveal reveal-delay-2">→</div>
+
+    <div class="business-card scale reveal reveal-delay-3">
+      <div class="step-tag">Step 02 · Scale</div>
+      <div class="partner-name">Chase</div>
+      <div class="partner-meta">70M members (18–59 cohort)</div>
+      <div class="impact">
+        <div class="num">$2.3B</div>
+        <div class="label">EEZ P&L impact at base case (10%)</div>
+      </div>
+      <div class="exposure">$22B annual fraud exposure</div>
+      <div class="why-tag">Why next</div>
+      <ul class="why-list">
+        <li>10× the scale of Chime</li>
+        <li>Chase Insight (2025) is acquiring younger users</li>
+        <li>EEZ becomes the trust layer for that play</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="business-footnote reveal reveal-delay-3">
+    <span class="em">18–35</span> is the entry wedge for proving behavior change.
+    <span class="em">18–59</span> is what scales once we're inside the bank.
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 11 UNIT ECONOMICS -->
+<!-- ===================================================== -->
+<section class="unit-section" data-page="11">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">11</span>
+      <span>Unit Economics</span>
+    </div>
+  </div>
+  <h2 class="unit-headline reveal">
+    <span class="accent">$24</span> in. <span class="accent">$146</span> out.<br>
+    <span class="roi">6× ROI</span> for the bank.
+  </h2>
+  <div class="unit-sub reveal reveal-delay-1">EEZ takes a slice. The bank keeps the rest.</div>
+
+  <div class="unit-bar-wrapper reveal reveal-delay-1">
+    <div class="unit-bar-header">
+      <span>Value created per protected customer / year</span>
+      <span class="total">$146.54</span>
+    </div>
+    <div class="unit-bar">
+      <div class="unit-bar-left">$24</div>
+      <div class="unit-bar-right">$122.54</div>
+    </div>
+    <div class="unit-bar-labels">
+      <div class="left-label">
+        <div class="name">EEZ price</div>
+        <div class="pct">to bank · 16%</div>
+      </div>
+      <div class="right-label">
+        <div class="name">Bank net benefit</div>
+        <div class="pct">after paying EEZ · 84%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="unit-scale-grid reveal reveal-delay-2">
+    <div class="unit-scale-cell eez">
+      <div class="label">EEZ ARR · Base case</div>
+      <div class="big">$168M</div>
+      <div class="formula">7M customers × $24/year</div>
+    </div>
+    <div class="unit-scale-cell bank">
+      <div class="label">Bank value · Base case</div>
+      <div class="big">$1.0B</div>
+      <div class="formula">7M customers × $146.54/year</div>
+    </div>
+  </div>
+
+  <div class="unit-callout reveal reveal-delay-3">For every <span class="num">$1</span> a bank spends on EEZ, they prevent <span class="num">$6</span> in fraud cost.</div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 12 3-YEAR PLAN -->
+<!-- ===================================================== -->
+<section class="plan-section" data-page="12">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">12</span>
+      <span>3-Year Plan</span>
+    </div>
+  </div>
+  <h2 class="plan-headline reveal">From <span class="accent">pilot</span> to <span class="accent">partner</span> to <span class="accent">infrastructure</span>.</h2>
+  <div class="plan-sub reveal reveal-delay-1">Each year earns the next.</div>
+
+  <div class="plan-timeline">
+    <div class="plan-year reveal reveal-delay-1">
+      <div class="marker"></div>
+      <div class="year-label">Year 01 · 2026</div>
+      <div class="year-name">Pilot</div>
+      <div class="field">
+        <div class="field-label">Goal</div>
+        <div class="field-text">Prove behavior change in real users.</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Channel</div>
+        <div class="field-text">Universities, corporates, alumni networks.</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Milestone</div>
+        <div class="field-text milestone">[50K] active users · fraud-reduction evidence pack.</div>
+      </div>
+    </div>
+    <div class="plan-year reveal reveal-delay-2">
+      <div class="marker"></div>
+      <div class="year-label">Year 02 · 2027</div>
+      <div class="year-name">Partner</div>
+      <div class="field">
+        <div class="field-label">Goal</div>
+        <div class="field-text">Convert pilot proof into first institutional deal.</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Channel</div>
+        <div class="field-text">First institutional design partner (Chime target).</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Milestone</div>
+        <div class="field-text milestone">First pilot signed · break-even path · [~$5M ARR].</div>
+      </div>
+    </div>
+    <div class="plan-year reveal reveal-delay-3">
+      <div class="marker"></div>
+      <div class="year-label">Year 03 · 2028</div>
+      <div class="year-name">Scale</div>
+      <div class="field">
+        <div class="field-label">Goal</div>
+        <div class="field-text">Embed as standard fraud-prevention infrastructure.</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Channel</div>
+        <div class="field-text">3+ bank / fintech partnerships.</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Milestone</div>
+        <div class="field-text milestone">[$30–50M] ARR · 1M+ protected customers.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="plan-foot reveal">
+    Today's ask funds <span class="em">Year 1</span>. Year 2 is paid for by the Chime pilot. Year 3 unlocks the equity round.
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 13 TRACTION / Where We Are Now -->
+<!-- ===================================================== -->
+<section class="traction-section" data-page="13">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">13</span>
+      <span>Where We Are Now</span>
+    </div>
+  </div>
+  <h2 class="traction-headline reveal">Already shipping. Already learning.</h2>
+  <div class="traction-sub reveal reveal-delay-1">What we've built before any institutional dollar.</div>
+
+  <div class="traction-grid">
+    <div class="traction-cell reveal reveal-delay-1">
+      <div class="label">Brand & Product</div>
+      <svg class="visual" viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+        <!-- Stylized mockup composition -->
+        <rect x="20" y="20" width="55" height="100" rx="8" fill="none" stroke="#5B3DEA" stroke-width="1.5"/>
+        <rect x="22" y="22" width="51" height="20" rx="2" fill="#5B3DEA" opacity="0.15"/>
+        <line x1="28" y1="50" x2="55" y2="50" stroke="#5B3DEA" stroke-width="1" opacity="0.4"/>
+        <line x1="28" y1="58" x2="65" y2="58" stroke="#5B3DEA" stroke-width="1" opacity="0.4"/>
+        <line x1="28" y1="66" x2="50" y2="66" stroke="#5B3DEA" stroke-width="1" opacity="0.4"/>
+        <circle cx="47" cy="100" r="10" fill="#E96A45"/>
+        <text x="47" y="103" text-anchor="middle" fill="white" font-size="6" font-weight="700">SOS</text>
+
+        <rect x="85" y="35" width="45" height="80" rx="6" fill="none" stroke="#5B3DEA" stroke-width="1" opacity="0.6"/>
+        <line x1="90" y1="50" x2="125" y2="50" stroke="#5B3DEA" stroke-width="0.8" opacity="0.4"/>
+        <line x1="90" y1="60" x2="115" y2="60" stroke="#5B3DEA" stroke-width="0.8" opacity="0.4"/>
+        <line x1="90" y1="70" x2="120" y2="70" stroke="#5B3DEA" stroke-width="0.8" opacity="0.4"/>
+
+        <rect x="140" y="50" width="50" height="60" rx="6" fill="none" stroke="#5B3DEA" stroke-width="1" opacity="0.4"/>
+        <line x1="146" y1="62" x2="180" y2="62" stroke="#5B3DEA" stroke-width="0.8" opacity="0.3"/>
+        <line x1="146" y1="72" x2="170" y2="72" stroke="#5B3DEA" stroke-width="0.8" opacity="0.3"/>
+
+        <text x="100" y="135" text-anchor="middle" fill="#8A8A9E" font-family="Manrope" font-size="7" letter-spacing="2">3 INTERVENTIONS · LIVE</text>
+      </svg>
+      <div class="stat-line">3 / 3</div>
+      <div class="stat-label">interventions prototyped end-to-end</div>
+      <div class="placeholder-note">Insert real screens / brand mark</div>
+    </div>
+
+    <div class="traction-cell reveal reveal-delay-2">
+      <div class="label">Community</div>
+      <svg class="visual" viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+        <!-- Growth chart -->
+        <line x1="20" y1="120" x2="180" y2="120" stroke="#8A8A9E" stroke-width="0.5"/>
+        <line x1="20" y1="20" x2="20" y2="120" stroke="#8A8A9E" stroke-width="0.5"/>
+        <polyline points="20,110 50,100 80,85 110,60 140,40 180,25" fill="none" stroke="#5B3DEA" stroke-width="2"/>
+        <polygon points="20,110 50,100 80,85 110,60 140,40 180,25 180,120 20,120" fill="#5B3DEA" opacity="0.1"/>
+        <circle cx="180" cy="25" r="5" fill="#E96A45"/>
+        <circle cx="180" cy="25" r="10" fill="#E96A45" opacity="0.2"/>
+
+        <text x="180" y="15" text-anchor="end" fill="#1A1A2E" font-family="DM Serif Display" font-size="14">growing</text>
+        <text x="20" y="135" fill="#8A8A9E" font-family="Manrope" font-size="7" letter-spacing="2">MONTH 1</text>
+        <text x="180" y="135" text-anchor="end" fill="#8A8A9E" font-family="Manrope" font-size="7" letter-spacing="2">MONTH 6</text>
+      </svg>
+      <div class="stat-line">[12K]</div>
+      <div class="stat-label">organic followers across Instagram & TikTok</div>
+      <div class="placeholder-note">Insert real handles + numbers</div>
+    </div>
+
+    <div class="traction-cell reveal reveal-delay-3">
+      <div class="label">Validation</div>
+      <svg class="visual" viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+        <!-- Quote mark -->
+        <text x="100" y="80" text-anchor="middle" fill="#E96A45" font-family="DM Serif Display" font-size="120" opacity="0.25">"</text>
+        <text x="100" y="115" text-anchor="middle" fill="#5B3DEA" font-family="Manrope" font-size="9" letter-spacing="2" font-weight="600">FROM REAL USERS</text>
+      </svg>
+      <div class="pull-quote">"I almost sent the codes — your tool stopped me."</div>
+      <div class="quote-attr">— [Beta user · Age 24 · Phishing scam]</div>
+      <div class="placeholder-note">Replace with real beta-user quote</div>
+    </div>
+  </div>
+
+  <div class="traction-foot reveal">
+    The product exists. The audience exists. The behavior change is observable.
+    <span class="em">Now we scale it.</span>
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- 14 THE ASK -->
+<!-- ===================================================== -->
+<section class="ask-section" data-page="14">
+  <div class="section-marker">
+    <div class="label">
+      <span class="num">14</span>
+      <span>The Ask</span>
+    </div>
+  </div>
+  <div class="ask-eyebrow reveal">Funding to validate</div>
+  <div class="ask-bignum reveal reveal-delay-1">$200K</div>
+  <div class="ask-meta reveal reveal-delay-2">
+    <div class="item">
+      <div class="key">Structure</div>
+      <div class="val">2-year debt</div>
+    </div>
+    <div class="item">
+      <div class="key">Equity kicker</div>
+      <div class="val">0.5%</div>
+    </div>
+    <div class="item">
+      <div class="key">Milestone</div>
+      <div class="val">First pilot · Mo. 18</div>
+    </div>
+  </div>
+  <div class="ask-tagline reveal reveal-delay-2">To fund the pilot, validate unit economics, and prove the model before we raise equity.</div>
+
+  <div class="ask-funds reveal reveal-delay-2">
+    <div class="funds-label">Use of funds</div>
+    <div class="ask-funds-bar">
+      <div class="build">$80K</div>
+      <div class="ops">$90K</div>
+      <div class="legal">$30K</div>
+    </div>
+    <div class="ask-funds-legend">
+      <div>
+        <div class="pct">40%</div>
+        <div class="name">Technical build</div>
+        <div class="desc">AI behavioral layer + community alert infrastructure</div>
+      </div>
+      <div>
+        <div class="pct">45%</div>
+        <div class="name">Operations</div>
+        <div class="desc">12-month runway to first institutional pilot</div>
+      </div>
+      <div>
+        <div class="pct">15%</div>
+        <div class="name">Legal & IP</div>
+        <div class="desc">Incorporation, contracts, trademarks</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ask-bottom reveal reveal-delay-3">
+    <div class="ask-bottom-cell">
+      <div class="label">Milestone this unlocks</div>
+      <div class="val">First institutional pilot signed by month 18.</div>
+    </div>
+    <div class="ask-bottom-cell">
+      <div class="label">Why debt, not equity</div>
+      <div class="val">Validates economics before we set a valuation.</div>
+    </div>
+  </div>
+
+  <div class="ask-final reveal reveal-delay-3">
+    $200K now <span class="em">→</span> $168M ARR ceiling at base case.
+  </div>
+</section>
+
+<!-- ===================================================== -->
+<!-- CLOSING -->
+<!-- ===================================================== -->
+<section class="closing-section" data-page="14">
+  <div class="closing-content">
+    <div class="closing-statement reveal">
+      Banks are built for <em>after</em>.<br>
+      <span class="accent">We are built for before.</span>
+    </div>
+    <div class="closing-divider"></div>
+    <div class="closing-logo reveal reveal-delay-1">eez.</div>
+    <div class="closing-byline reveal reveal-delay-2">Pre-transaction fraud prevention for financial institutions</div>
+  </div>
+</section>
+
+<script>
+// ============== Reveal on scroll ==============
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('in');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.15, rootMargin: '0px 0px -10% 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ============== Scroll progress + page counter ==============
+const progress = document.getElementById('scrollProgress');
+const counter = document.getElementById('pageCounter');
+const sections = document.querySelectorAll('section');
+
+function updateScrollUI() {
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = (scrollTop / docHeight) * 100;
+  progress.style.width = pct + '%';
+
+  // Find current section
+  let current = '01';
+  const offset = window.innerHeight * 0.4;
+  sections.forEach(sec => {
+    const rect = sec.getBoundingClientRect();
+    if (rect.top <= offset && rect.bottom > offset) {
+      current = sec.dataset.page || current;
+    }
+  });
+  counter.textContent = current + ' / 14';
+}
+
+window.addEventListener('scroll', updateScrollUI, { passive: true });
+window.addEventListener('resize', updateScrollUI);
+updateScrollUI();
+</script>
+
+</body>
+</html>
